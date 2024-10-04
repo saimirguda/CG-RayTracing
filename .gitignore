@@ -1,0 +1,4 @@
+build/build_docker
+output/diffs
+output/task1
+build/bin
