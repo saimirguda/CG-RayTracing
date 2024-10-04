@@ -1,0 +1,69 @@
+image: ${CI_REGISTRY}/icg-docker/cg1-test-system
+.render_template: &render_configuration
+  stage: test
+  script:
+    - build/bin/task1 data/task1/$TEST_NAME.json
+  tags:
+    - docker,shared
+  #only:
+  #  - submission
+  dependencies:
+    - linux-build-task1
+  artifacts:
+    paths:
+      - output/task1/
+    expire_in: 2 h
+
+
+stages:
+  - build
+  - test
+  - collect
+
+
+linux-build-task1:
+  stage: build
+  script:
+    - cd build
+    - cmake -GNinja ./cmake
+    - ninja task1
+  tags:
+    - docker,shared
+  #only:
+  #  - submission
+  artifacts:
+    paths:
+      - build/bin/task1
+    expire_in: 2 h
+
+linux-test-tumble:
+  variables:
+    TEST_NAME: "tumble"
+  <<: *render_configuration
+linux-test-bunny:
+  variables:
+    TEST_NAME: "bunny"
+  <<: *render_configuration
+linux-test-plane:
+  variables:
+    TEST_NAME: "ray_plane_basic"
+  <<: *render_configuration
+linux-test-cone-of-destiny:
+  variables:
+    TEST_NAME: "cone_of_destiny"
+  <<: *render_configuration
+
+linux-test-task1-collect:
+  stage: collect
+  script:
+    - mkdir -p output && mkdir -p output/diffs
+    - OUTPUTS="output/task1/*"; for i in $OUTPUTS; do compare -compose src "$i" "output/ref/${i##*/}" "output/diffs/${i##*/}" || true; echo "Output diffed ${i}"; done
+  tags:
+    - docker,shared
+  #only:
+  #  - submission
+  artifacts:
+    paths:
+      - output/task1/
+      - output/diffs/
+    expire_in: 2 d
